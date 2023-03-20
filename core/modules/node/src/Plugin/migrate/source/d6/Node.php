@@ -107,19 +107,19 @@ class Node extends DrupalSqlBase {
     $this->handleTranslations($query);
 
     $query->fields('n', [
-        'nid',
-        'type',
-        'language',
-        'status',
-        'created',
-        'changed',
-        'comment',
-        'promote',
-        'moderate',
-        'sticky',
-        'tnid',
-        'translate',
-      ])
+      'nid',
+      'type',
+      'language',
+      'status',
+      'created',
+      'changed',
+      'comment',
+      'promote',
+      'moderate',
+      'sticky',
+      'tnid',
+      'translate',
+    ])
       ->fields('nr', [
         'title',
         'body',
@@ -255,7 +255,7 @@ class Node extends DrupalSqlBase {
       }
     }
 
-    return isset($this->fieldInfo[$node_type]) ? $this->fieldInfo[$node_type] : [];
+    return $this->fieldInfo[$node_type] ?? [];
   }
 
   /**

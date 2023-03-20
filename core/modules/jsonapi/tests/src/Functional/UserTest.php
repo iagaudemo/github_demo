@@ -315,8 +315,10 @@ class UserTest extends ResourceTestBase {
    *   The username to log in with.
    * @param string $password
    *   The password to log in with.
+   *
+   * @internal
    */
-  protected function assertRpcLogin($username, $password) {
+  protected function assertRpcLogin(string $username, string $password): void {
     $request_body = [
       'name' => $username,
       'pass' => $password,
@@ -635,7 +637,7 @@ class UserTest extends ResourceTestBase {
     $test_node = $node_storage->load($node->id());
     $this->assertNotNull($test_node, 'Node of the user is not deleted.');
     $this->assertTrue($test_node->isPublished(), 'Node of the user is published.');
-    $test_node = node_revision_load($node->getRevisionId());
+    $test_node = $node_storage->loadRevision($node->getRevisionId());
     $this->assertTrue($test_node->isPublished(), 'Node revision of the user is published.');
   }
 
@@ -665,7 +667,7 @@ class UserTest extends ResourceTestBase {
     $test_node = $node_storage->load($node->id());
     $this->assertNotNull($test_node, 'Node of the user is not deleted.');
     $this->assertFalse($test_node->isPublished(), 'Node of the user is no longer published.');
-    $test_node = node_revision_load($node->getRevisionId());
+    $test_node = $node_storage->loadRevision($node->getRevisionId());
     $this->assertFalse($test_node->isPublished(), 'Node revision of the user is no longer published.');
   }
 
@@ -711,7 +713,7 @@ class UserTest extends ResourceTestBase {
     }
 
     foreach ($nodes as $node) {
-      $test_node = node_revision_load($node->getRevisionId());
+      $test_node = $node_storage->loadRevision($node->getRevisionId());
       $this->assertFalse($test_node->isPublished(), 'Node revision of the user is no longer published.');
     }
   }
@@ -742,7 +744,7 @@ class UserTest extends ResourceTestBase {
     $this->assertNotNull($test_node, 'Node of the user is not deleted.');
     $this->assertTrue($test_node->isPublished(), 'Node of the user is still published.');
     $this->assertEquals(0, $test_node->getOwnerId(), 'Node of the user has been attributed to anonymous user.');
-    $test_node = node_revision_load($node->getRevisionId());
+    $test_node = $node_storage->loadRevision($node->getRevisionId());
     $this->assertTrue($test_node->isPublished(), 'Node revision of the user is still published.');
     $this->assertEquals(0, $test_node->getRevisionUser()->id(), 'Node revision of the user has been attributed to anonymous user.');
   }
@@ -803,7 +805,9 @@ class UserTest extends ResourceTestBase {
 
   /**
    * @param \Drupal\user\UserInterface $account
+   *   The user account.
    * @param string $cancel_method
+   *   The cancel method.
    */
   private function sendDeleteRequestForUser(UserInterface $account, string $cancel_method) {
     $url = Url::fromRoute(sprintf('jsonapi.%s.individual', static::$resourceTypeName), ['entity' => $account->uuid()]);

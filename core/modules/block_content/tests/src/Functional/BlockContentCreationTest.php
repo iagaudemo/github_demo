@@ -25,7 +25,7 @@ class BlockContentCreationTest extends BlockContentTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * Permissions to grant admin user.
@@ -172,7 +172,7 @@ class BlockContentCreationTest extends BlockContentTestBase {
     $edit = [];
     $edit['info[0][value]'] = $this->randomMachineName(8);
     $edit['body[0][value]'] = $this->randomMachineName(16);
-    // Don't pass the custom block type in the url so the default is forced.
+    // Don't pass the custom block type in the URL so the default is forced.
     $this->drupalGet('block/add');
     $this->submitForm($edit, 'Save');
 
@@ -291,7 +291,7 @@ class BlockContentCreationTest extends BlockContentTestBase {
     $this->drupalGet($url);
     $this->submitForm($instance, 'Save block');
 
-    $dependencies = \Drupal::service('config.manager')->findConfigEntityDependentsAsEntities('content', [$block->getConfigDependencyName()]);
+    $dependencies = \Drupal::service('config.manager')->findConfigEntityDependenciesAsEntities('content', [$block->getConfigDependencyName()]);
     $block_placement = reset($dependencies);
     $this->assertEquals($block_placement_id, $block_placement->id(), "The block placement config entity has a dependency on the block content entity.");
   }

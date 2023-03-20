@@ -92,7 +92,7 @@ abstract class JsonApiFunctionalTestBase extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Set up a HTTP client that accepts relative URLs.
@@ -286,7 +286,7 @@ abstract class JsonApiFunctionalTestBase extends BrowserTestBase {
       }
       if ($article_has_image) {
         $file = File::create([
-          'uri' => 'vfs://' . $random->name() . '.png',
+          'uri' => 'public://' . $random->name() . '.png',
         ]);
         $file->setPermanent();
         $file->save();

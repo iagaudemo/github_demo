@@ -203,15 +203,14 @@ class BasicAuthTest extends BrowserTestBase {
   }
 
   /**
-   * Tests the cacheability of Basic Auth's 401 response.
+   * Tests the cacheability of the Basic Auth 401 response.
    *
    * @see \Drupal\basic_auth\Authentication\Provider\BasicAuth::challengeException()
    */
   public function testCacheabilityOf401Response() {
-    $session = $this->getSession();
     $url = Url::fromRoute('router_test.11');
 
-    $assert_response_cacheability = function ($expected_page_cache_header_value, $expected_dynamic_page_cache_header_value) use ($session, $url) {
+    $assert_response_cacheability = function ($expected_page_cache_header_value, $expected_dynamic_page_cache_header_value) use ($url) {
       $this->drupalGet($url);
       $this->assertSession()->statusCodeEquals(401);
       $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', $expected_page_cache_header_value);
@@ -234,7 +233,7 @@ class BasicAuthTest extends BrowserTestBase {
     // If the permissions of the 'anonymous' role change, it may no longer be
     // necessary to be authenticated to access this route. Therefore the cached
     // 401 responses should be invalidated.
-    $this->grantPermissions(Role::load(Role::ANONYMOUS_ID), [$this->randomMachineName()]);
+    $this->grantPermissions(Role::load(Role::ANONYMOUS_ID), ['access content']);
     $assert_response_cacheability('MISS', 'MISS');
     $assert_response_cacheability('HIT', 'MISS');
     // Idem for when the 'system.site' config changes.

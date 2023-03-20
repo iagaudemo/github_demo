@@ -14,7 +14,7 @@ class StatementWrapper implements \IteratorAggregate, StatementInterface {
    *
    * @var \Drupal\Core\Database\Connection
    */
-  public $dbh;
+  protected $connection;
 
   /**
    * The client database Statement object.
@@ -30,7 +30,7 @@ class StatementWrapper implements \IteratorAggregate, StatementInterface {
    *
    * @var bool
    */
-  public $allowRowCount = FALSE;
+  protected $rowCountEnabled = FALSE;
 
   /**
    * Constructs a StatementWrapper object.
@@ -43,42 +43,14 @@ class StatementWrapper implements \IteratorAggregate, StatementInterface {
    *   The SQL query string.
    * @param array $options
    *   Array of query options.
+   * @param bool $row_count_enabled
+   *   (optional) Enables counting the rows matched. Defaults to FALSE.
    */
-  public function __construct(Connection $connection, $client_connection, string $query, array $options) {
-    $this->dbh = $connection;
+  public function __construct(Connection $connection, $client_connection, string $query, array $options, bool $row_count_enabled = FALSE) {
+    $this->connection = $connection;
     $this->clientStatement = $client_connection->prepare($query, $options);
+    $this->rowCountEnabled = $row_count_enabled;
     $this->setFetchMode(\PDO::FETCH_OBJ);
-  }
-
-  /**
-   * Implements the magic __get() method.
-   *
-   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Access the
-   *   client-level statement object via ::getClientStatement().
-   *
-   * @see https://www.drupal.org/node/3177488
-   */
-  public function __get($name) {
-    if ($name === 'queryString') {
-      @trigger_error("StatementWrapper::\${$name} should not be accessed in drupal:9.1.0 and will error in drupal:10.0.0. Access the client-level statement object via ::getClientStatement(). See https://www.drupal.org/node/3177488", E_USER_DEPRECATED);
-      return $this->getClientStatement()->queryString;
-    }
-  }
-
-  /**
-   * Implements the magic __call() method.
-   *
-   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Access the
-   *   client-level statement object via ::getClientStatement().
-   *
-   * @see https://www.drupal.org/node/3177488
-   */
-  public function __call($method, $arguments) {
-    if (is_callable([$this->getClientStatement(), $method])) {
-      @trigger_error("StatementWrapper::{$method} should not be called in drupal:9.1.0 and will error in drupal:10.0.0. Access the client-level statement object via ::getClientStatement(). See https://www.drupal.org/node/3177488", E_USER_DEPRECATED);
-      return call_user_func_array([$this->getClientStatement(), $method], $arguments);
-    }
-    throw new \BadMethodCallException($method);
   }
 
   /**
@@ -96,6 +68,13 @@ class StatementWrapper implements \IteratorAggregate, StatementInterface {
   /**
    * {@inheritdoc}
    */
+  public function getConnectionTarget(): string {
+    return $this->connection->getTarget();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function execute($args = [], $options = []) {
     if (isset($options['fetch'])) {
       if (is_string($options['fetch'])) {
@@ -108,7 +87,7 @@ class StatementWrapper implements \IteratorAggregate, StatementInterface {
       }
     }
 
-    $logger = $this->dbh->getLogger();
+    $logger = $this->connection->getLogger();
     if (!empty($logger)) {
       $query_start = microtime(TRUE);
     }
@@ -202,7 +181,7 @@ class StatementWrapper implements \IteratorAggregate, StatementInterface {
    */
   public function rowCount() {
     // SELECT query should not use the method.
-    if ($this->allowRowCount) {
+    if ($this->rowCountEnabled) {
       return $this->clientStatement->rowCount();
     }
     else {
@@ -279,99 +258,9 @@ class StatementWrapper implements \IteratorAggregate, StatementInterface {
   /**
    * {@inheritdoc}
    */
+  #[\ReturnTypeWillChange]
   public function getIterator() {
     return new \ArrayIterator($this->fetchAll());
-  }
-
-  /**
-   * Bind a column to a PHP variable.
-   *
-   * @param mixed $column
-   *   Number of the column (1-indexed) or name of the column in the result set.
-   *   If using the column name, be aware that the name should match the case of
-   *   the column, as returned by the driver.
-   * @param mixed $param
-   *   Name of the PHP variable to which the column will be bound.
-   * @param int $type
-   *   (Optional) data type of the parameter, specified by the PDO::PARAM_*
-   *   constants.
-   * @param int $maxlen
-   *   (Optional) a hint for pre-allocation.
-   * @param mixed $driverdata
-   *   (Optional) optional parameter(s) for the driver.
-   *
-   * @return bool
-   *   Returns TRUE on success or FALSE on failure.
-   *
-   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0.
-   *   StatementWrapper::bindColumn should not be called. Access the
-   *   client-level statement object via ::getClientStatement().
-   *
-   * @see https://www.drupal.org/node/3177488
-   */
-  public function bindColumn($column, &$param, int $type = 0, int $maxlen = 0, $driverdata = NULL): bool {
-    @trigger_error("StatementWrapper::bindColumn should not be called in drupal:9.1.0 and will error in drupal:10.0.0. Access the client-level statement object via ::getClientStatement(). See https://www.drupal.org/node/3177488", E_USER_DEPRECATED);
-    switch (func_num_args()) {
-      case 2:
-        return $this->clientStatement->bindColumn($column, $param);
-
-      case 3:
-        return $this->clientStatement->bindColumn($column, $param, $type);
-
-      case 4:
-        return $this->clientStatement->bindColumn($column, $param, $type, $maxlen);
-
-      case 5:
-        return $this->clientStatement->bindColumn($column, $param, $type, $maxlen, $driverdata);
-
-    }
-  }
-
-  /**
-   * Binds a parameter to the specified variable name.
-   *
-   * @param mixed $parameter
-   *   Parameter identifier. For a prepared statement using named placeholders,
-   *   this will be a parameter name of the form :name.
-   * @param mixed $variable
-   *   Name of the PHP variable to bind to the SQL statement parameter.
-   * @param int $data_type
-   *   (Optional) explicit data type for the parameter using the PDO::PARAM_*
-   *   constants. To return an INOUT parameter from a stored procedure, use the
-   *   bitwise OR operator to set the PDO::PARAM_INPUT_OUTPUT bits for the
-   *   data_type parameter.
-   * @param int $length
-   *   (Optional) length of the data type. To indicate that a parameter is an
-   *   OUT parameter from a stored procedure, you must explicitly set the
-   *   length.
-   * @param mixed $driver_options
-   *   (Optional) Driver options.
-   *
-   * @return bool
-   *   Returns TRUE on success or FALSE on failure.
-   *
-   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0.
-   *   StatementWrapper::bindParam should not be called. Access the
-   *   client-level statement object via ::getClientStatement().
-   *
-   * @see https://www.drupal.org/node/3177488
-   */
-  public function bindParam($parameter, &$variable, int $data_type = \PDO::PARAM_STR, int $length = 0, $driver_options = NULL) : bool {
-    @trigger_error("StatementWrapper::bindParam should not be called in drupal:9.1.0 and will error in drupal:10.0.0. Access the client-level statement object via ::getClientStatement(). See https://www.drupal.org/node/3177488", E_USER_DEPRECATED);
-    switch (func_num_args()) {
-      case 2:
-        return $this->clientStatement->bindParam($parameter, $variable);
-
-      case 3:
-        return $this->clientStatement->bindParam($parameter, $variable, $data_type);
-
-      case 4:
-        return $this->clientStatement->bindParam($parameter, $variable, $data_type, $length);
-
-      case 5:
-        return $this->clientStatement->bindParam($parameter, $variable, $data_type, $length, $driver_options);
-
-    }
   }
 
 }
